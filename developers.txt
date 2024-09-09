@@ -1,0 +1,14 @@
+to update dependencies / update the dependencies as according to the pyproject.toml file.
+$ poetry update
+
+to installs the project dependencies.
+$ poetry install
+
+to run tests: (without print statements)
+$ poetry run pytest -v 
+
+to run tests: (with print statements)
+$ poetry run pytest -vs
+
+to run tests: (only the specified test function)
+$ poetry run pytest -v -k 'test_XX'
