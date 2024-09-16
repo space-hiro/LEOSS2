@@ -1078,13 +1078,96 @@ class LEOSS():
 
 
 def systemGravity(system: LEOSS, mass, position, gravityTYPE):
-
+    '''
+    ------------------------------------------------------------------------------------------
+    Computes the gravitation force and gravitational perturbation forces on the spacecraft due 
+    to Earth's oblateness.
+    (only harmonics until J4).
+    ------------------------------------------------------------------------------------------
+    Algorithm is derived from [1], also see [2].
+    J values are taken from [1]
+    ------------------------------------------------------------------------------------------
+    References:
+        [1] Fundamentals of Astrodynamics and Applications by David Vallado (2013) pp.594
+        [2] Analytical Mechanics of Space Systems by Hanspeter Schaub (2009) pp.553
+    ------------------------------------------------------------------------------------------
+    '''
     if gravityTYPE == "NONE" or "":
         return Vector(0.0, 0.0, 0.0)
     
     if gravityTYPE == "SPHERICAL2BODY":
         rho = position.magnitude()
         return -(system.mu*mass/(rho**3))*position
+    
+    if gravityTYPE == "EARTHJ2":
+        rho = position.magnitude()
+        force_2body = -(system.mu*mass/(rho**3))*position
+
+        J2 = 1082.6276e-6
+        magnitude2 = (3/2)*(J2*system.mu*(system.radi**2))/(rho**4) 
+        k = 5*(position.z**2)/(rho**2)
+        vector = Vector( (position.x/rho)*(k-1), (position.y/rho)*(k-1), (position.z/rho)*(k-1)  )
+
+        force_total = force_2body + mass*magnitude2*vector
+        return force_total
+    
+    if gravityTYPE == "EARTHJ3":
+        rho = position.magnitude()
+        force_2body = -(system.mu*mass/(rho**3))*position
+
+        J2 = 1082.6276e-6
+        magnitude2 = (3/2)*(J2*system.mu*(system.radi**2))/(rho**4) 
+        k2 = 5*(position.z**2)/(rho**2)
+        vector2 = Vector( (position.x/rho)*(k2-1), (position.y/rho)*(k2-1), (position.z/rho)*(k2-1)  )
+
+        forceJ2 = mass*magnitude2*vector2
+    
+        J3 = -2.5327e-6
+        magnitude3 = (5/2)*(J3*system.mu*(system.radi**3))/(rho**6)
+        k3 = 7*(position.z**3)/(rho**2)
+        vector3 = Vector( (position.x/rho)*(k3-3*position.z), \
+                          (position.y/rho)*(k3-3*position.z),   \
+                          (1/rho)*(k3*position.z + (3/5)*(rho**2) - 6*position.z*position.z) )
+        
+        forceJ3 = mass*magnitude3*vector3
+        
+        force = force_2body + forceJ2 + forceJ3
+
+        return force
+    
+    if gravityTYPE == "EARTHJ4":
+        rho = position.magnitude()
+        force_2body = -(system.mu*mass/(rho**3))*position
+
+        J2 = 1082.6276e-6
+        magnitude2 = (3/2)*(J2*system.mu*(system.radi**2))/(rho**4) 
+        k2 = 5*(position.z**2)/(rho**2)
+        vector2 = Vector( (position.x/rho)*(k2-1), (position.y/rho)*(k2-1), (position.z/rho)*(k2-1)  )
+
+        forceJ2 = mass*magnitude2*vector2
+    
+        J3 = -2.5327e-6
+        magnitude3 = (5/2)*(J3*system.mu*(system.radi**3))/(rho**6)
+        k3 = 7*(position.z**3)/(rho**2)
+        vector3 = Vector( (position.x/rho)*(k3-3*position.z), \
+                          (position.y/rho)*(k3-3*position.z),   \
+                          (1/rho)*(k3*position.z + (3/5)*(rho**2) - 6*position.z*position.z) )
+        
+        forceJ3 = mass*magnitude3*vector3
+        
+        J4 = -0.1619e-6
+        magnitude4 = (15/8)*(J4*system.mu*(system.radi**4))/(rho**6) 
+        k4 = 21*(position.z**4)/(rho**4)
+        l4 = 14*(position.z**2)/(rho**2)
+        vector4 = Vector( (position.x/rho)*( 1 - l4 + k4), \
+                          (position.y/rho)*( 1 - l4 + k4),   \
+                          (position.z/rho)*( 5 - (5/3)*l4 + k4) )
+        
+        forceJ4 = mass*magnitude4*vector4
+
+        force = force_2body + forceJ2 + forceJ3 + forceJ4
+
+        return force
 
 def systemMagneticField(system: LEOSS, state, time, dipole, fieldTYPE):
     
