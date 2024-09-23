@@ -4,6 +4,6 @@ test.py
 *.mp4
 *.gif
 /dist
-__PYPI__token__.txt
 TLE.txt
 test_SGP4.py
+__PYPI__TOKEN__DONT__EDIT__.txt
