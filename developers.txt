@@ -4,11 +4,23 @@ $ poetry update
 to installs the project dependencies.
 $ poetry install
 
-to run tests: (without print statements)
+to run all tests: (without print statements)
 $ poetry run pytest -v 
 
-to run tests: (with print statements)
+to run all tests: (with print statements)
 $ poetry run pytest -vs
 
 to run tests: (only the specified test function)
 $ poetry run pytest -v -k 'test_XX'
+
+to check files before building
+$ poetry check
+
+to build files to upload to PyPI
+$ poetry build
+
+to upload to PyPI, use the API token from PyPI account
+$ twine upload dist/* 
+
+the released version can be found here:
+https://pypi.org/project/leoss/
