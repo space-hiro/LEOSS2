@@ -1077,7 +1077,7 @@ class LEOSS():
         return location
 
 
-def systemGravity(system: LEOSS, mass, position, gravityTYPE):
+def systemGravity(system: LEOSS, mass, position, gravityTYPE = ""):
     '''
     ------------------------------------------------------------------------------------------
     Computes the gravitation force and gravitational perturbation forces on the spacecraft due 
@@ -1169,7 +1169,7 @@ def systemGravity(system: LEOSS, mass, position, gravityTYPE):
 
         return force
 
-def systemMagneticField(system: LEOSS, state, time, dipole, fieldTYPE):
+def systemMagneticField(system: LEOSS, state, time, dipole, fieldTYPE = ""):
     
     if fieldTYPE == "NONE" or "":
         return Vector(0.0, 0.0, 0.0)
@@ -1230,9 +1230,9 @@ def systemMagneticField(system: LEOSS, state, time, dipole, fieldTYPE):
 
         return disturbance_torque
 
-def systemAtmosphere(system: LEOSS, state, dimension, atmosphereTYPE):
+def systemAtmosphere(system: LEOSS, state, dimension, atmosphereTYPE = ""):
 
-    if atmosphereTYPE == "NONE":
+    if atmosphereTYPE == "NONE" or "":
         return Vector(0.0, 0.0, 0.0)
     
     if atmosphereTYPE == "CIRA12":
@@ -1457,8 +1457,9 @@ def simulate(system: LEOSS, timeEnd, timeStep=1/32, orbitPropOnly = False):
 
     system.orbitPropOnly = orbitPropOnly
 
-    while system.time < timeEnd:
+    while system.time <= timeEnd:
         system.advance1timestep(timeStep)
+    system.time = system.time - timeStep
 
 def simulateProgress(system: LEOSS, timeEnd, timeStep=1/32, orbitPropOnly = False):
 
@@ -1467,12 +1468,13 @@ def simulateProgress(system: LEOSS, timeEnd, timeStep=1/32, orbitPropOnly = Fals
     print("\nRun Simulation (from "+str(system.time)+" to "+str(timeEnd)+", step="+str(timeStep)+")")
     t0 = clock.time()
 
-    pbar = tqdm(total=timeEnd-system.time, position=0, desc='Simulating', bar_format='{l_bar}{bar:25}{r_bar}{bar:-25b}')
+    pbar = tqdm(total=timeEnd-system.time+timeStep, position=0, desc='Simulating', bar_format='{l_bar}{bar:25}{r_bar}{bar:-25b}')
     
-    while(system.time < timeEnd):
+    while(system.time <= timeEnd):
         prev_time = system.time
         system.advance1timestep(timeStep)        
         pbar.update(system.time - prev_time)
+    system.time = system.time - timeStep
     pbar.close()
 
     t1 = clock.time()

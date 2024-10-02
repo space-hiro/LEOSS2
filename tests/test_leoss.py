@@ -2,10 +2,10 @@ from leoss import __version__
 from leoss import *
 
 
-def test_version():
-    assert __version__ == "0.3.00"
+def test__00__ShowsCorrectVersion():
+    assert __version__ == "0.3.1"
 
-def test_01():
+def test__01__SPACECRAFT_AddingAndListingToLEOSSsIsWorking():
     '''
     Test LEOSS Class Implementation.
     LEOSS object creation
@@ -20,7 +20,7 @@ def test_01():
     assert system.listSpacecraft() == ['DIWATA-1', 'DIWATA-2']
     assert system.numSpacecraft() == 2
 
-def test_02():
+def test__02__VECTOR_MathIsCorrect():
     '''
     Test Vector Class Implementation.
     Vector Addition
@@ -56,7 +56,7 @@ def test_02():
     assert str(a) == "Vector(1, 1, 1)"
     assert str(d) == "Vector(1, 2, 3)"
 
-def test_03():
+def test__03__SPACECRAFT_GetMethodsIsWorking():
     '''
     __getitem__ method for LEOSS class
     setmass method for Spacecraft class
@@ -88,7 +88,7 @@ def test_03():
     system[1].setvelocity(2*Vector(50,30,40))
     assert system[1].getvelocity() == Vector(100, 60, 80)
 
-def test_04():
+def test__04__STATE_SetMethodsIsWorking():
     '''
     Test State Class Implementation.
     State Addition __add__ (element wise)
@@ -110,7 +110,7 @@ def test_04():
     assert system[0].state / 2 == system[0].state * 0.5
     # assert str(system[0].state) == "State(4.5, Vector(100, 60, 80), Vector(5, 3, 4))" 
 
-def test_05():
+def test__05__LEOSS_Advance1TimeStepIsCorrect():
     '''
     Test LEOSS class methods.
     advance1timestep method -- move forward the system with one time step
@@ -161,7 +161,7 @@ def test_05():
     assert system[1].getposition() == Vector(72.5,110,57.5)
     assert system[1].getvelocity() == Vector(5,4,3)
 
-def test_06():
+def test__06__STATE_ValuesIsCorrect():
     '''
     Test State methods.
     __getitem__ method
@@ -184,7 +184,7 @@ def test_06():
     system[0].state[1] = Vector(1.0,2.0,3.0)
     assert system[0].state.position == Vector(1,2,3)
 
-def test_07():
+def test__07__LEOSS_SimulateIsEnergyConstant():
     '''
     Test LEOSS methods.
     simulate method -- move forward multiple time steps given the timeEnd and timeStep in seconds
@@ -213,13 +213,13 @@ def test_07():
     assert abs(h1-h0) < 1e-3
     assert abs(xi1-xi0) < 1e-3
 
-def test_08():
+def test__08__VISUAL_IsImported():
     '''
     verify that a function is a class like LEOSS.
     '''
     assert type(visual_check()) == LEOSS
 
-def test_09():
+def test__09__LEOSS_EpochIsCorrectDatetime():
     '''
     Test LEOSS method and variables.
     epoch method -- specify the date and time epoch or instant in time as initial value of the system
@@ -233,7 +233,7 @@ def test_09():
 
     assert system.datetime0 == datetime.datetime(2023,1,1,0,0,0,0)
 
-def test_10():
+def test__10__LEOSS_SimulateIsCorrectDuration():
     '''
     Test LEOSS methods.
     verify that simulate runs the correct amount of time by using epoch to check the date time after simulation
@@ -255,7 +255,7 @@ def test_10():
 
     assert system.datenow() == datetime.datetime(2023,1,1,0,16,40,0)
 
-def test_11():
+def test__11__LEOSS_EpochJulianDateIsCorrect():
     '''
     Test LEOSS methods.
     verify that epoch calcualtes the correct Julian Date, Greenwich Mean Sidereal Time at UT and Greenwich Mean Sidereal Time
@@ -275,7 +275,7 @@ def test_11():
     assert system.gmst0  == 328.5763825139975
     assert system.gmst%360 == 152.57878881549743
 
-def test_12():
+def test__12__LEOSS_SimulateVsSGP4_GPSErrorLessThan1():
     '''
     Test LEOSS simulation.
     Using data from ISS orbit and with the python sgp4 library.
@@ -323,7 +323,7 @@ def test_12():
     assert abs(location[1]- 142.6722) <= 1
     assert abs(location[2]- 414.6) <= 1 
 
-def test_13():
+def test__13__RECORDER_DataRecordIsCorrect():
     '''
     Test Recorder Class Implementation.
     Recorder class - used as a recorder or observer for a Spacecraft class object
@@ -355,11 +355,14 @@ def test_13():
     assert str(datetime0) == '2023-09-26 03:11:18.031250'
     assert statedata0.position == Vector(4394898.778238248, 3631669.6300121024, -3712710.365847866)
     assert statedata0.velocity ==  Vector(-5769.040252603422, 2582.1749501580102, -4310.063557192801)
-    assert str(datetimef) == '2023-09-26 03:53:16.968750'
-    assert statedataf.position == Vector(-5725429.518467132, -2767128.121674426, 2382521.4362371108)
-    assert statedataf.velocity == Vector(4028.4864460075523, -3694.449056195037, 5373.066456593324)
+    assert str(datetimef) == '2023-09-26 03:53:17'
+    # assert statedataf.position == Vector(-5725429.518467132, -2767128.121674426, 2382521.4362371108)
+    assert statedataf.position == Vector(-5725303.624707216, -2767243.571487566, 2382689.3430830454)
+    # assert statedataf.velocity == Vector(4028.4864460075523, -3694.449056195037, 5373.066456593324)
+    assert statedataf.velocity == Vector(4028.7141877464305, -3694.338983991167, 5372.97168210374)
 
-def test_14():
+
+def test__14__RECORDER_CanControlDataToRecord():
     '''
     Test Recorder class methods.
     addSpacecraft method now can be used to set what the recorder class will record.
@@ -397,13 +400,19 @@ def test_14():
     assert statedata0.velocity == Vector(-5769.040252603422, 2582.1749501580102, -4310.063557192801)
     assert location0 == Vector(-33.23762159989866, -12.932703716557796, 431.80805538907555)
     assert netforce0 == Vector(-278.11913958517897, -229.83480648340282, 234.9668751720585)
-    assert str(datetimef) == '2023-09-26 03:53:16.968750'
-    assert statedataf.position == Vector(-5725429.518467132, -2767128.121674426, 2382521.4362371108)
-    assert statedataf.velocity == Vector(4028.4864460075523, -3694.449056195037, 5373.066456593324)
-    assert locationf == Vector(20.658246279489802, 142.76949414474478, 415.2313183538606)
-    assert netforcef == Vector(364.382790906085, 176.1192072581338, -151.64453269308962) 
+    assert str(datetimef) == '2023-09-26 03:53:17'
 
-def test_15():
+    # assert statedataf.position == Vector(-5725429.518467132, -2767128.121674426, 2382521.4362371108)
+    # assert statedataf.velocity == Vector(4028.4864460075523, -3694.449056195037, 5373.066456593324)
+    # assert statedataf.position == Vector(-5725303.624707216, -2767243.571487566, 2382689.3430830454)
+    # assert statedataf.velocity == Vector(4028.7141877464305, -3694.338983991167, 5372.97168210374)
+
+    assert locationf == Vector(20.659766928143334, 142.77079375755216, 415.23150512780995)
+    assert netforcef == Vector(364.37480792878233, 176.12656920777482, -151.65523125532854)
+    assert statedataf.position == Vector(-5725303.624707216, -2767243.571487566, 2382689.3430830454)
+    assert statedataf.velocity == Vector(4028.7141877464305, -3694.338983991167, 5372.97168210374)
+
+def test__15__QUATERNION_MathIsCorrect():
     '''
     Test Quaternion Class Implementation.
     Quaternion Addition 
@@ -443,7 +452,7 @@ def test_15():
     assert (q3q4 - q3) == q4
     assert (q4q3 - q4) == q3
 
-def test_16():
+def test__16__MATRIX_MathIsCorrect():
     '''
     Test Matrix and Quaternion Implementations.
     __str__ and __repr__ methods
@@ -560,7 +569,7 @@ def test_16():
     assert (Vector(0,-1,0) - Q_z.conjugate().rotate(Vx)).magnitude() <= 1e-8
     assert (Vector(0,1,0) - Q_z.rotate(Vx)).magnitude() <= 1e-8
 
-def test_17():
+def test__17__SENSOR_AddingAndListingToSpacecraftIsCorrect():
     '''
     Testing the sensor class functions.
     Using custom functions to define gyroscope and gps sensors.

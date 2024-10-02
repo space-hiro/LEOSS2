@@ -1693,3 +1693,50 @@ def export(recorder: Recorder, tStart: int = 0, tEnd: int = -1, filename='data')
     clipped_out.to_csv(filename+".csv",index=False)
 
     print("\n\t"+"Filename: "+filename+".csv EXPORTED!")
+
+def exportALL(recorder: Recorder, tStart: int = 0, tEnd: int = -1, filename='data'):
+
+    n      = 4
+    method = 'linear'
+    order  = 5
+
+    df = pd.DataFrame.from_dict(recorder.dataDict)
+
+    # spacecraft = recorder.attachedTo
+    # system = spacecraft.system
+
+    Positions   = [ item.position for item in df['State'].values.tolist()[:] ]
+    Velocities  = [ item.velocity for item in df['State'].values.tolist()[:] ]
+    Quaternions = [ item.quaternion for item in df['State'].values.tolist()[:] ]
+    Bodyrates   = [ item.bodyrate for item in df['State'].values.tolist()[:] ]
+    # Datetimes   = [ item for item in df['Datetime'] ][:]
+    # Times       = [ (item - system.datetime0).total_seconds() for item in df['Datetime'][:] ]
+
+    # if tEnd < 0:
+    #     tEnd = Times[-1]
+
+    # out = pd.DataFrame()
+
+    datalines = []
+    dt = ''.join(e for e in str(datetime.datetime.now()) if e.isalnum())
+    with open(filename+'_'+dt+".txt",'w') as outfile:
+
+        outfile.write("YEAR\nMONTH\nDAY\nHOUR\nMINUTE\nSECOND\nMICROSECOND\n" + \
+            "POSITION(X, m)\nPOSITION(Y, m)\nPOSITION(Z, m)\n" + \
+            "VELOCITY(X, m/s)\nVELOCITY(Y, m/s)\nVELOCITY(Z, m/s)\n" + \
+            "QUATERNON(W, real)\nQUATERNION(X)\nQUATERNION(Y)\nQUATERNION(Z)\n" + \
+            "BODYRATE(X, roll, rad/s)\nBODYRATE(Y, pitch, rad/s)\nBODYRATE(Z, yaw, rad/s)\n" + \
+            "LOCATION(latitude, deg)\nLOCATION(longitude, deg)\nLOCATION(altitude, km)\n" + \
+            "NETFORCE()")
+        
+
+
+        for i in np.arange(0,len(df),1):
+            dateValue = df['Datetime'][i].strftime('%Y %m %d %H %M %S %f')
+            positionValue = f'{Positions[i].x:.15f} {Positions[i].y:.15f} {Positions[i].z:.15f}'
+            velocityValue = f'{Velocities[i].x:.15f} {Velocities[i].y:.15f} {Velocities[i].z:.15f}'
+            quaternionValue = f'{Quaternions[i].w:.15f} {Quaternions[i].x:.15f} {Quaternions[i].y:.15f} {Quaternions[i].z:.15f}'
+            bodyrateValue = f'{Bodyrates[i].x:.15f} {Bodyrates[i].y:.15f} {Bodyrates[i].z:.15f}'
+
+            dataline = dateValue + " " + positionValue + " " + velocityValue + " " + quaternionValue + " " + bodyrateValue
+            outfile.write(dataline+'\n')
