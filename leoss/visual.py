@@ -1357,6 +1357,128 @@ def animatedGroundTrack(recorder: Recorder, sample: int = 0, saveas: str = 'mp4'
 
     plt.close()
 
+def sensorTrack2(recorder: Recorder, sensor1: str, sensor2: str):
+        
+    df = pd.DataFrame.from_dict(recorder.dataDict)
+
+    spacecraft = recorder.attachedTo
+    system     = spacecraft.system
+
+    df['Position']  = [ item.position for item in df['State'].values.tolist()[:] ]
+    df['Velocity']  = [ item.velocity for item in df['State'].values.tolist()[:] ]
+    df['Quaternion'] = [ item.quaternion for item in df['State'].values.tolist()[:] ]
+    df['Bodyrate']  = [ item.bodyrate for item in df['State'].values.tolist()[:] ]
+
+    Sensor1Data = [ item for item in df[sensor1].values.tolist()[:] ]
+    Sensor2Data = [ item for item in df[sensor2].values.tolist()[:] ]
+    Datetimes  = [ item for item in df['Datetime'] ][:]
+    Times      = [ (item - system.datetime0).total_seconds() for item in df['Datetime'][:] ]
+
+    Sensor1X = [ item.x for item in Sensor1Data ]
+    Sensor1Y = [ item.y for item in Sensor1Data ]
+    Sensor1Z = [ item.z for item in Sensor1Data ]
+    Sensor1M = [ item.magnitude() for item in Sensor1Data ]
+
+    Sensor2X = [ item.x for item in Sensor2Data ]
+    Sensor2Y = [ item.y for item in Sensor2Data ]
+    Sensor2Z = [ item.z for item in Sensor2Data ]
+    Sensor2M = [ item.magnitude() for item in Sensor2Data ]
+
+    fig = plt.figure(figsize=(12,6))
+    ax1 = fig.add_subplot(2,2,1)
+    ax2 = fig.add_subplot(2,2,2)
+    ax3 = fig.add_subplot(2,2,3)
+    ax4 = fig.add_subplot(2,2,4)
+
+    ax1.plot(Times, Sensor1X, label='X', color='#1f77b4')
+    ax2.plot(Times, Sensor1Y, label='Y', color='#ff7f0e')
+    ax3.plot(Times, Sensor1Z, label='Z', color='#2ca02c')
+    ax4.plot(Times, Sensor1M, label='Magnitude', color='#d62728')
+
+    ax1.plot(Times, Sensor2X, label='X', color='#1f77b4', linestyle='--')
+    ax2.plot(Times, Sensor2Y, label='Y', color='#ff7f0e', linestyle='--')
+    ax3.plot(Times, Sensor2Z, label='Z', color='#2ca02c', linestyle='--')
+    ax4.plot(Times, Sensor2M, label='Magnitude', color='#d62728', linestyle='--')
+
+
+    ax1.grid()
+    ax2.grid()
+    ax3.grid()
+    ax4.grid()
+
+    ax1.set_title(f'X', fontsize=10)
+    ax2.set_title(f'Y', fontsize=10)
+    ax3.set_title(f'Z', fontsize=10)
+    ax4.set_title(f'Magnitude', fontsize=10)
+
+    ax2.set_xlabel("Time (s)")
+    ax4.set_xlabel("Time (s)")
+
+    plt.suptitle(f'{spacecraft.name}: {sensor1} vs {sensor2}\n{Datetimes[-1]}', fontname='monospace')
+    plt.subplots_adjust(hspace=0.4)  
+
+    cursor1 = Cursor(ax1, horizOn=True, vertOn=True, useblit=True, color='gray',linewidth=1, linestyle='--')
+    cursor2 = Cursor(ax2, horizOn=True, vertOn=True, useblit=True, color='gray',linewidth=1, linestyle='--')
+    cursor3 = Cursor(ax3, horizOn=True, vertOn=True, useblit=True, color='gray',linewidth=1, linestyle='--')
+    cursor4 = Cursor(ax4, horizOn=True, vertOn=True, useblit=True, color='gray',linewidth=1, linestyle='--')
+
+    annot1 = ax1.annotate("", xy=(0,0), xytext=(-40,40), textcoords="offset points",
+                         bbox=dict(boxstyle='round4', fc='linen', ec='k', lw=1),
+                         arrowprops=dict(arrowstyle='-|>'), zorder=10)
+    annot2 = ax2.annotate("", xy=(0,0), xytext=(-40,40), textcoords="offset points",
+                        bbox=dict(boxstyle='round4', fc='linen', ec='k', lw=1),
+                        arrowprops=dict(arrowstyle='-|>'), zorder=10)
+    annot3 = ax3.annotate("", xy=(0,0), xytext=(-40,40), textcoords="offset points",
+                        bbox=dict(boxstyle='round4', fc='linen', ec='k', lw=1),
+                        arrowprops=dict(arrowstyle='-|>'), zorder=10)
+    annot4 = ax4.annotate("", xy=(0,0), xytext=(-40,40), textcoords="offset points",
+                    bbox=dict(boxstyle='round4', fc='linen', ec='k', lw=1),
+                    arrowprops=dict(arrowstyle='-|>'), zorder=10)
+    
+    annot1.set_visible(False)
+    annot2.set_visible(False)
+    annot3.set_visible(False)
+    annot4.set_visible(False)
+
+    def axesToAnnot(axes):
+        if axes == ax1:
+            return annot1, Sensor1X, Sensor2X
+        if axes == ax2:
+            return annot2, Sensor1Y, Sensor2Y
+        if axes == ax3:
+            return annot3, Sensor1Z, Sensor2Z 
+        if axes == ax4:
+            return annot4, Sensor1M, Sensor2M 
+
+    def onclick(event):
+        if event.button == 1 and event.inaxes != None:
+            x = event.xdata
+            if x < 0:
+                x = 0
+
+            annot, func1, func2 = axesToAnnot(event.inaxes)
+            filtered = [ time for time in Times if time <= x ]
+            closestX = filtered[-1]
+            closestY1 = func1[Times.index(closestX)]
+            closestY2 = func2[Times.index(closestX)]
+
+            annot.xy = (closestX, closestY1)    
+            text = "(" + str( '%.2F'% closestX) + ", " + str( '%+.4E' % closestY1) + ", "+ str( '%+.4E' % closestY2) +")"
+            annot.set_text(text)
+            annot.set_visible(True)
+            fig.canvas.draw()
+
+            print("("+str(closestX)+", "+str(closestY1)+", "+str(closestY2)+")")
+
+        elif event.button == 3 and event.inaxes != None:
+            annot, func1, func2 = axesToAnnot(event.inaxes)
+            annot.set_visible(False)
+            fig.canvas.draw()
+    
+    fig.canvas.mpl_connect('button_press_event', onclick)
+
+    plt.show()
+
 def sensorTrack(recorder: Recorder, sensor: str):
         
     df = pd.DataFrame.from_dict(recorder.dataDict)
@@ -1709,6 +1831,22 @@ def exportALL(recorder: Recorder, tStart: int = 0, tEnd: int = -1, filename='dat
     Velocities  = [ item.velocity for item in df['State'].values.tolist()[:] ]
     Quaternions = [ item.quaternion for item in df['State'].values.tolist()[:] ]
     Bodyrates   = [ item.bodyrate for item in df['State'].values.tolist()[:] ]
+    Location    = [ item for item in df['Location'].values.tolist()[:] ]
+    Netforce    = [ item for item in df['Netforce'].values.tolist()[:] ]
+    Nettorque   = [ item for item in df['Nettorque'].values.tolist()[:] ]
+    Netmoment   = [ item for item in df['Netmoment'].values.tolist()[:] ]
+    Sunlocation = [ item for item in df['Sunlocation'].values.tolist()[:] ]
+    SpAngMom    = [ item for item in df['SpecificAngularMomentum'] ]
+    SpMechEn    = [ item for item in df['SpecificMechanicalEnergy'] ]
+    BdAngMom    = [ item for item in df['BodyAngularMomentum'] ]
+
+    dataset = []
+    for col in df.columns[10:]:
+        if isinstance(df[col][0], Vector):
+            dataset.append( [ item for item in df[col].values.tolist()[:] ] )
+        if isinstance(df[col][0], (int, float)):
+            dataset.append( [ item for item in df[col] ] )
+
     # Datetimes   = [ item for item in df['Datetime'] ][:]
     # Times       = [ (item - system.datetime0).total_seconds() for item in df['Datetime'][:] ]
 
@@ -1721,22 +1859,52 @@ def exportALL(recorder: Recorder, tStart: int = 0, tEnd: int = -1, filename='dat
     dt = ''.join(e for e in str(datetime.datetime.now()) if e.isalnum())
     with open(filename+'_'+dt+".txt",'w') as outfile:
 
-        outfile.write("YEAR\nMONTH\nDAY\nHOUR\nMINUTE\nSECOND\nMICROSECOND\n" + \
+        outfile.write( "UNIXTIME\nYEAR\nMONTH\nDAY\nHOUR\nMINUTE\nSECOND\nMICROSECOND\n" + \
             "POSITION(X, m)\nPOSITION(Y, m)\nPOSITION(Z, m)\n" + \
             "VELOCITY(X, m/s)\nVELOCITY(Y, m/s)\nVELOCITY(Z, m/s)\n" + \
             "QUATERNON(W, real)\nQUATERNION(X)\nQUATERNION(Y)\nQUATERNION(Z)\n" + \
             "BODYRATE(X, roll, rad/s)\nBODYRATE(Y, pitch, rad/s)\nBODYRATE(Z, yaw, rad/s)\n" + \
             "LOCATION(latitude, deg)\nLOCATION(longitude, deg)\nLOCATION(altitude, km)\n" + \
-            "NETFORCE()")
+            "NETFORCE(X, N)\nNETFORCE(Y, N)\nNETFORCE(Z,N)\n" + \
+            "NETMOMENT(X, kgm^2/s)\nNETMOMENT(Y, kgm^2/s)\nNETMOMENT(Z, kgm^2/s)\n" + \
+            "SUNLOCATION(latitude, deg)\nSUNLOCATION(longitude, deg)\nSUNLOCATION(unused)\n" + \
+            "SPECIFICANGULARMOMENTUM( m^2/s )\n" + \
+            "SPECIFICMECHANICALENERGY( m^2/s^2 )\n" + \
+            "BODYANGULARMOMENTUM( kgm^2/s )\n" )
         
-
+        for col in df.columns[10:]:
+            outfile.write(col+"\n")
 
         for i in np.arange(0,len(df),1):
+            unixTime = int(calendar.timegm(df['Datetime'][i].utctimetuple()))
+            unixValue = f'{unixTime}'
             dateValue = df['Datetime'][i].strftime('%Y %m %d %H %M %S %f')
             positionValue = f'{Positions[i].x:.15f} {Positions[i].y:.15f} {Positions[i].z:.15f}'
             velocityValue = f'{Velocities[i].x:.15f} {Velocities[i].y:.15f} {Velocities[i].z:.15f}'
             quaternionValue = f'{Quaternions[i].w:.15f} {Quaternions[i].x:.15f} {Quaternions[i].y:.15f} {Quaternions[i].z:.15f}'
             bodyrateValue = f'{Bodyrates[i].x:.15f} {Bodyrates[i].y:.15f} {Bodyrates[i].z:.15f}'
+            locationValue = f'{Location[i].x:.15f} {Location[i].y:.15f} {Location[i].z:.15f}'
+            netforceValue = f'{Netforce[i].x:.15f} {Netforce[i].y:.15f} {Netforce[i].z:.15f}'
+            nettorqueValue = f'{Nettorque[i].x:.15f} {Nettorque[i].y:.15f} {Nettorque[i].z:.15f}'
+            netmomentValue = f'{Netmoment[i].x:.15f} {Netmoment[i].y:.15f} {Netmoment[i].z:.15f}'
+            sunlocationValue = f'{Sunlocation[i].x:.15f} {Sunlocation[i].y:.15f} {Sunlocation[i].z:.15f}'
+            samValue = f'{SpAngMom[i]:.15f}'
+            smeValue = f'{SpMechEn[i]:.15f}'
+            bamValue = f'{BdAngMom[i]:.15f}'
 
-            dataline = dateValue + " " + positionValue + " " + velocityValue + " " + quaternionValue + " " + bodyrateValue
+            dataValues = []
+            for icol in np.arange(0, len(df.columns[10:]), 1):
+                if isinstance(df[col][0], Vector):
+                    dataValues.append( f'{dataset[icol][i].x:.15f} {dataset[icol][i].y:.15f} {dataset[icol][i].z:.15f}' )
+                if isinstance(df[col][0], (int, float)):
+                    dataValues.append( [ f'{dataset[icol][i]:.15f}' ] )
+
+
+            dataline = unixValue + " " + dateValue + " " + positionValue + " " + velocityValue + " " + quaternionValue + " " + bodyrateValue  + " " + \
+                locationValue + " " +netforceValue + " " + nettorqueValue + " " + netmomentValue + " " + sunlocationValue + " " + \
+                samValue + " " + smeValue + " " + bamValue
+            
+            for icol in np.arange(0, len(df.columns[10:]), 1):
+                dataline = dataline + " " + dataValues[icol]
             outfile.write(dataline+'\n')
+

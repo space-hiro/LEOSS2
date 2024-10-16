@@ -3,7 +3,7 @@ from leoss import *
 
 
 def test__00__ShowsCorrectVersion():
-    assert __version__ == "0.3.1"
+    assert __version__ == "0.3.2"
 
 def test__01__SPACECRAFT_AddingAndListingToLEOSSsIsWorking():
     '''
@@ -361,7 +361,6 @@ def test__13__RECORDER_DataRecordIsCorrect():
     # assert statedataf.velocity == Vector(4028.4864460075523, -3694.449056195037, 5373.066456593324)
     assert statedataf.velocity == Vector(4028.7141877464305, -3694.338983991167, 5372.97168210374)
 
-
 def test__14__RECORDER_CanControlDataToRecord():
     '''
     Test Recorder class methods.
@@ -628,4 +627,62 @@ def test__17__SENSOR_AddingAndListingToSpacecraftIsCorrect():
     assert recorder["DIWATA"]['State'][-1].bodyrate == sensors['gyro'].data
     assert recorder["DIWATA"]['Location'][-1] == sensors['gps'].data
     assert recorder['DIWATA']['gps'][-1] == sensors['gps'].data
-    assert recorder['DIWATA']['State'][1].bodyrate == recorder['DIWATA']['gyro'][1]
+    assert recorder['DIWATA']['State'][2].bodyrate == recorder['DIWATA']['gyro'][2]
+
+def test__18__SENSOR_DelaySensorFunction():
+    '''
+    Testing the sensor class functions.
+    '''
+    system = LEOSS()
+    system.epoch(2023,9,26,3,11,18,0)
+
+    system.addSpacecraft("DIWATA", ["State", "Location", "Netforce"])
+
+    spacecraft = system.getSpacecrafts()
+    recorder   = system.getRecorders()
+
+    spacecraft["DIWATA"].setmass(50)
+    spacecraft["DIWATA"].setsize(Vector(0.1,0.2,0.3))
+    spacecraft["DIWATA"].setposition(1e3*Vector(4395.079058029986, 3631.5889348004957, -3712.575674067216))
+    spacecraft["DIWATA"].setvelocity(1e3*Vector(-5.76886641743168, 2.5823185921356733, -4.310210403510053))
+    spacecraft["DIWATA"].setbodyrate(Vector(5,-4,3))
+    spacecraft["DIWATA"].setorientation(Vector(0,0,0))
+
+    Sked_00 = Sked('Sked_00', file = 'sked_default.txt')
+    spacecraft['DIWATA'].loadSked(Sked_00)
+
+    gyroscope = Sensor("gyro")
+    gps       = Sensor("gps")
+
+    def gyrofunction(spacecraft, args):
+        out = Vector(0,0,0)
+        if len(spacecraft.recorder['State']) >= 3:
+            out = spacecraft.recorder['State'][-3].bodyrate
+        return out
+    
+    def gpsfunction(spacecraft, args):
+        return spacecraft['Location']
+    
+    gyroscope.setMethod(gyrofunction)
+    gps.setMethod(gpsfunction)
+
+    spacecraft["DIWATA"].addSensor(gyroscope)
+    spacecraft["DIWATA"].addSensor(gps)
+
+    sensors = spacecraft["DIWATA"].getSensors()
+
+    assert sensors['gyro'] == gyroscope
+    assert sensors['gps'] == gps
+    assert sensors['gyro'].attachedTo == spacecraft["DIWATA"]
+    assert sensors['gyro'].system == system
+    assert spacecraft["DIWATA"]['gyro'] == gyroscope.data
+    assert spacecraft["DIWATA"]['gps'] == gps.data
+
+    time = 60*60
+
+    simulate(system, time, timeStep = 0.5)
+
+    assert recorder["DIWATA"]['Location'][-1] == sensors['gps'].data
+    assert recorder['DIWATA']['gps'][-1] == sensors['gps'].data
+    assert recorder['DIWATA']['State'][-4].bodyrate == recorder['DIWATA']['gyro'][-1]
+    assert recorder['DIWATA']['State'][-1].bodyrate != recorder['DIWATA']['gyro'][-1]

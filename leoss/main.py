@@ -504,7 +504,7 @@ class Sensor():
         self.name = name
         self.data = Vector(0,0,0)
         self.function = None
-        self.power = True
+        self.power = False
     
     def setMethod(self, function, args=[]):
         self.function = function
@@ -622,6 +622,7 @@ class Spacecraft():
         self.nextCMDline = None
         self.idxCMD      = None
         self.unixTime    = 0
+        self.continueCMD = True
 
     def loadSked(self, other: Sked):
         if isinstance(other, Sked):
@@ -635,35 +636,61 @@ class Spacecraft():
 
     def updateUnixTime(self, cycle=1):
         if int(calendar.timegm(self.system.datenow().utctimetuple())) == self.unixTime + cycle:
-            self.unixTime = self.unixTime + cycle
-            if self.sked != None:
+            self.unixTime = int(calendar.timegm(self.system.datenow().utctimetuple()))
+            if self.sked != None and self.continueCMD:
                 self.processSked()
         self.updateComponents()
         
     def processSked(self):
         if int(self.nextCMDline[0]) == self.unixTime or int(self.nextCMDline[0]) < 0:
+            print('\t Execute CMD: '+str(self.nextCMDline))
             self.COMMANDEXEC(self.nextCMDline[1], self.nextCMDline[2])
             if self.idxCMD < self.sked.size()-1:
                 self.idxCMD         = self.idxCMD + 1
                 self.nextCMD        = self.sked[self.idxCMD]
                 self.nextCMDline    = self.nextCMD.replace('\n','').replace(' ','').split(',')
+                self.continueCMD    = True
+            else:
+                self.continueCMD = False
 
     def COMMANDEXEC(self, command: str, arg=[]):
+        done = False
         if command == 'Components' and arg == 'ON':
             for sensor in self.sensors.values():
-                sensor.power = True
+                sensor.power = True; done = True
             for controller in self.controllers.values():
-                controller.power = True
+                controller.power = True; done = True
             for actor in self.actuators.values():
-                actor.power = True
+                actor.power = True; done = True
 
         if command == 'Components' and arg == 'OFF':
             for sensor in self.sensors.values():
-                sensor.power = False
+                sensor.power = False; done = True
             for controller in self.controllers.values():
-                controller.power = False
+                controller.power = False; done = True
             for actor in self.actuators.values():
-                actor.power = False
+                actor.power = False; done = True
+
+        if command in self.sensors.keys() and (arg == 'ON' or arg == 'OFF'):
+            if arg == 'ON':
+                self.sensors[command].power = True; done = True
+            if arg == 'OFF':
+                self.sensors[command].power = False; done = True
+
+        if command in self.controllers.keys() and (arg == 'ON' or arg == 'OFF'):
+            if arg == 'ON':
+                self.controllers[command].power = True; done = True
+            if arg == 'OFF':
+                self.controllers[command].power = False; done = True
+
+        if command in self.actuators.keys() and (arg == 'ON' or arg == 'OFF'):
+            if arg == 'ON':
+                self.actuators[command].power = True; done = True
+            if arg == 'OFF':
+                self.actuators[command].power = False; done = True
+
+        if not done:
+            print('\t No matching CMD found')
 
     def updateComponents(self):
         self.updateSensors()
@@ -855,15 +882,15 @@ class Spacecraft():
                 return self.system.sunVector
             elif item == "SpecificAngularMomentum": 
                 sam = self.state.position.cross(self.state.velocity).magnitude()
-                return Vector(sam, sam, sam)
+                return sam
             elif item == "SpecificMechanicalEnergy":
                 pos = self.state.position
                 vel = self.state.velocity
                 sme = (vel.magnitude()**2/2 - (self.system.mu/pos.magnitude()))
-                return Vector(sme, sme, sme)
+                return sme
             elif item == "BodyAngularMomentum":
                 bam = self.netmomentum.magnitude()
-                return Vector(bam, bam, bam)
+                return bam
             elif item in list(self.sensors.keys()):
                 return self.getSensors()[item].data
             
@@ -1667,7 +1694,7 @@ ideal_magnetometer = Sensor('ideal_MTM')
 ideal_magnetometer.setMethod(magnetometer_function)
 
 ideal_bdotcontroller = Controller('ideal_BDOT')
-ideal_bdotcontroller.setMethod(bdotcontroller_function, [5e3])
+ideal_bdotcontroller.setMethod(bdotcontroller_function, [5e4])
 
 ideal_magnetorquer = Actuator('ideal_MTQ')
 ideal_magnetorquer.setMethod(magnetorquer_function)
