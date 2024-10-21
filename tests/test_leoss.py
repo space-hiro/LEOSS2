@@ -3,7 +3,7 @@ from leoss import *
 
 
 def test__00__ShowsCorrectVersion():
-    assert __version__ == "0.3.4"
+    assert __version__ == "0.3.5"
 
 def test__01__SPACECRAFT_AddingAndListingToLEOSSsIsWorking():
     '''
