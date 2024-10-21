@@ -9,3 +9,5 @@ test_SGP4.py
 __PYPI__TOKEN__DONT__EDIT__.txt
 data_*.txt
 sked_testcase.txt
+*.csv
+*.pkl

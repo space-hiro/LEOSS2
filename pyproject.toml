@@ -1,13 +1,13 @@
 [tool.poetry]
 name = "leoss"
-version = "0.3.2"
+version = "0.3.3"
 description = "Low Earth Orbit Spacecraft Simulator"
 authors = ["space-hiro <144877753+space-hiro@users.noreply.github.com>"]
 readme = "README.rst"
 license = "MIT"
 
 [tool.poetry.dependencies]
-python = ">=3.10, <3.12"
+python = ">=3.10, <3.13"
 matplotlib = "^3.8.0"
 numpy = "<2"
 datetime = "^5.2"

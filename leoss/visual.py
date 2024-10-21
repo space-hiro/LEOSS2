@@ -1588,6 +1588,48 @@ def sensorTrack(recorder: Recorder, sensor: str):
 
     plt.show()
 
+def sensorTrack0(recorder: Recorder, sensor: str, args=[1]):
+        
+    df = pd.DataFrame.from_dict(recorder.dataDict)
+
+    spacecraft = recorder.attachedTo
+    system     = spacecraft.system
+
+    df['Position']  = [ item.position for item in df['State'].values.tolist()[:] ]
+    df['Velocity']  = [ item.velocity for item in df['State'].values.tolist()[:] ]
+    df['Quaternion'] = [ item.quaternion for item in df['State'].values.tolist()[:] ]
+    df['Bodyrate']  = [ item.bodyrate for item in df['State'].values.tolist()[:] ]
+
+    SensorData = [ item for item in df[sensor].values.tolist()[:] ]
+    Datetimes  = [ item for item in df['Datetime'] ][:]
+    Times      = [ (item - system.datetime0).total_seconds() for item in df['Datetime'][:] ]
+
+    fig = plt.figure(figsize=(12,6))
+    ax = fig.add_subplot(1,1,1)
+
+    if isinstance(SensorData[0], Vector):
+        SensorX = [ item.x*args[0] for item in SensorData ]
+        SensorY = [ item.y*args[0] for item in SensorData ]
+        SensorZ = [ item.z*args[0] for item in SensorData ]
+        SensorM = [ item.magnitude()*args[0] for item in SensorData ]
+
+        ax.plot(Times, SensorX, label='X', color='#1f77b4')
+        ax.plot(Times, SensorY, label='Y', color='#ff7f0e')
+        ax.plot(Times, SensorZ, label='Z', color='#2ca02c')
+        ax.plot(Times, SensorM, label='Magnitude', color='#d62728')
+
+    elif isinstance(SensorData[0], (int, float)):
+
+        ax.plot(Times, SensorData, label='Magnitude', color='#d62728')
+
+    ax.grid()
+    ax.set_xlabel("Time (s)")
+    ax.legend()
+
+    plt.suptitle(f'{spacecraft.name}: {sensor}\n{Datetimes[-1]}', fontname='monospace')
+
+    plt.show()
+
 def animatedSensorTrack(recorder: Recorder, sensor: str, sample: int = 0, saveas: str = 'mp4', dpi: int = 300, filename='SensorTrack'):
 
     # get datadict from recorder as dataframe
@@ -1758,7 +1800,7 @@ def animatedSensorTrack(recorder: Recorder, sensor: str, sample: int = 0, saveas
 
     plt.close()
 
-def export(recorder: Recorder, tStart: int = 0, tEnd: int = -1, filename='data'):
+def export(recorder: Recorder, tStart: int = 0, tEnd: int = -1, filename='simdata'):
 
     n      = 4
     method = 'linear'
@@ -1878,16 +1920,16 @@ def exportALL(recorder: Recorder, tStart: int = 0, tEnd: int = -1, filename='dat
         for i in np.arange(0,len(df),1):
             unixTime = int(calendar.timegm(df['Datetime'][i].utctimetuple()))
             unixValue = f'{unixTime}'
-            dateValue = df['Datetime'][i].strftime('%Y %m %d %H %M %S %f')
-            positionValue = f'{Positions[i].x:.15f} {Positions[i].y:.15f} {Positions[i].z:.15f}'
-            velocityValue = f'{Velocities[i].x:.15f} {Velocities[i].y:.15f} {Velocities[i].z:.15f}'
-            quaternionValue = f'{Quaternions[i].w:.15f} {Quaternions[i].x:.15f} {Quaternions[i].y:.15f} {Quaternions[i].z:.15f}'
-            bodyrateValue = f'{Bodyrates[i].x:.15f} {Bodyrates[i].y:.15f} {Bodyrates[i].z:.15f}'
-            locationValue = f'{Location[i].x:.15f} {Location[i].y:.15f} {Location[i].z:.15f}'
-            netforceValue = f'{Netforce[i].x:.15f} {Netforce[i].y:.15f} {Netforce[i].z:.15f}'
-            nettorqueValue = f'{Nettorque[i].x:.15f} {Nettorque[i].y:.15f} {Nettorque[i].z:.15f}'
-            netmomentValue = f'{Netmoment[i].x:.15f} {Netmoment[i].y:.15f} {Netmoment[i].z:.15f}'
-            sunlocationValue = f'{Sunlocation[i].x:.15f} {Sunlocation[i].y:.15f} {Sunlocation[i].z:.15f}'
+            dateValue = df['Datetime'][i].strftime('%Y, %m, %d, %H, %M, %S, %f')
+            positionValue = f'{Positions[i].x:.15f}, {Positions[i].y:.15f}, {Positions[i].z:.15f}'
+            velocityValue = f'{Velocities[i].x:.15f}, {Velocities[i].y:.15f}, {Velocities[i].z:.15f}'
+            quaternionValue = f'{Quaternions[i].w:.15f}, {Quaternions[i].x:.15f}, {Quaternions[i].y:.15f}, {Quaternions[i].z:.15f}'
+            bodyrateValue = f'{Bodyrates[i].x:.15f}, {Bodyrates[i].y:.15f}, {Bodyrates[i].z:.15f}'
+            locationValue = f'{Location[i].x:.15f}, {Location[i].y:.15f}, {Location[i].z:.15f}'
+            netforceValue = f'{Netforce[i].x:.15f}, {Netforce[i].y:.15f}, {Netforce[i].z:.15f}'
+            nettorqueValue = f'{Nettorque[i].x:.15f}, {Nettorque[i].y:.15f}, {Nettorque[i].z:.15f}'
+            netmomentValue = f'{Netmoment[i].x:.15f}, {Netmoment[i].y:.15f}, {Netmoment[i].z:.15f}'
+            sunlocationValue = f'{Sunlocation[i].x:.15f}, {Sunlocation[i].y:.15f}, {Sunlocation[i].z:.15f}'
             samValue = f'{SpAngMom[i]:.15f}'
             smeValue = f'{SpMechEn[i]:.15f}'
             bamValue = f'{BdAngMom[i]:.15f}'
@@ -1895,16 +1937,19 @@ def exportALL(recorder: Recorder, tStart: int = 0, tEnd: int = -1, filename='dat
             dataValues = []
             for icol in np.arange(0, len(df.columns[10:]), 1):
                 if isinstance(df[col][0], Vector):
-                    dataValues.append( f'{dataset[icol][i].x:.15f} {dataset[icol][i].y:.15f} {dataset[icol][i].z:.15f}' )
+                    dataValues.append( f'{dataset[icol][i].x:.15f}, {dataset[icol][i].y:.15f}, {dataset[icol][i].z:.15f}' )
                 if isinstance(df[col][0], (int, float)):
                     dataValues.append( [ f'{dataset[icol][i]:.15f}' ] )
 
 
-            dataline = unixValue + " " + dateValue + " " + positionValue + " " + velocityValue + " " + quaternionValue + " " + bodyrateValue  + " " + \
-                locationValue + " " +netforceValue + " " + nettorqueValue + " " + netmomentValue + " " + sunlocationValue + " " + \
-                samValue + " " + smeValue + " " + bamValue
+            sep = ", "
+
+            dataline = unixValue + sep + dateValue + sep + positionValue + sep + velocityValue + sep + quaternionValue + sep + bodyrateValue  + sep + \
+                locationValue + sep +netforceValue + sep + nettorqueValue + sep + netmomentValue + sep + sunlocationValue + sep + \
+                samValue + sep + smeValue + sep + bamValue
             
             for icol in np.arange(0, len(df.columns[10:]), 1):
-                dataline = dataline + " " + dataValues[icol]
+                dataline = dataline + sep + dataValues[icol]
             outfile.write(dataline+'\n')
 
+    print("\n\t"+"Filename: "+filename+'_'+dt+".txt EXPORTED!")

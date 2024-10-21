@@ -643,7 +643,7 @@ class Spacecraft():
         
     def processSked(self):
         if int(self.nextCMDline[0]) == self.unixTime or int(self.nextCMDline[0]) < 0:
-            print('\t Execute CMD: '+str(self.nextCMDline))
+            print(' Execute CMD: '+str(self.nextCMDline))
             self.COMMANDEXEC(self.nextCMDline[1], self.nextCMDline[2])
             if self.idxCMD < self.sked.size()-1:
                 self.idxCMD         = self.idxCMD + 1
@@ -690,7 +690,7 @@ class Spacecraft():
                 self.actuators[command].power = False; done = True
 
         if not done:
-            print('\t No matching CMD found')
+            print('\t No matching CMD found for '+str(self.nextCMDline))
 
     def updateComponents(self):
         self.updateSensors()
@@ -1562,7 +1562,7 @@ def calculateJDate(sys: LEOSS):
 
 #### FUNCTIONS
 
-def magnetometer_function(spacecraft: Spacecraft, args):
+def IDEAL_magnetometer_function(spacecraft: Spacecraft, args):
     location = spacecraft.location
     magfield = IGRF.igrf_value(location[0], location[1], location[2], spacecraft.system.datenow().year)[3:6]
     magfield_NED_vector = Vector(magfield[0], magfield[1], magfield[2]) * 1e-9
@@ -1580,7 +1580,40 @@ def magnetometer_function(spacecraft: Spacecraft, args):
 
     return magfield_body_vector
 
-def bdotcontroller_function(spacecraft: Spacecraft, args):
+def REAL_magnetometer_FUNC(spacecraft, args):
+    '''
+    !! TO ADD NOISE and RANDOMNESS !!
+    Similar with the ideal magnetometer function with added delay options using args
+    delay = args[0] = INT only and non-negative, the number of simulate time steps of sensor output delay
+    
+    recorder length should have enough data to capture delayed information
+    - 1) takes the delayed recorder->location to measure the magnetic field (NED frame)
+    - 2) takes the delayed spacecraft->position to get transformation from NED to inertial frame
+    - 3) takes the transformation matrix from 3 to get the magnetic field (inertial frame)
+    - 4) takes the delayed spacecraft->quaternion to get transformation from inertial to BODY frame
+    - 5) takes the transformation matrix from 4 to get the magnetic field (BODY frame)
+    '''
+    if len(spacecraft.recorder['Location']) > args[0] and args[0] > -1:
+        location = spacecraft.recorder['Location'][-args[0]-1]
+        magfield = IGRF.igrf_value(location[0], location[1], location[2], spacecraft.recorder['Datetime'][-args[0]-1].year)[3:6]
+        magfield_NED_vector = Vector(magfield[0], magfield[1], magfield[2]) * 1e-9
+
+        position = spacecraft.recorder['State'][-args[0]-1].position
+        R = position.magnitude()
+        theta = math.acos(position.z/R)
+        psi   = math.atan2(position.y, position.x)
+        RPY = Vector(0, (theta+math.pi)*R2D, psi*R2D)
+
+        magfield_inertial_vector = RPY.RPY_toYPR_quaternion().toMatrix().transpose()*magfield_NED_vector
+
+        quaternion = spacecraft.recorder['State'][-args[0]-1].quaternion
+        magfield_body_vector = quaternion.toMatrix()*magfield_inertial_vector
+    else:
+        magfield_body_vector = Vector(0,0,0)
+
+    return magfield_body_vector
+
+def IDEAL_bdotcontroller_function(spacecraft: Spacecraft, args):
     magfield_body_vector0 = Vector(0,0,0)
     time0 = spacecraft.system.datetime0
 
@@ -1601,7 +1634,44 @@ def bdotcontroller_function(spacecraft: Spacecraft, args):
 
     return control_moment
 
-def magnetorquer_function(spacecraft: Spacecraft, args):
+def REAL_bdotcontroller_FUNC(spacecraft: Spacecraft, args):
+    '''
+    !! TO ADD NOISE and RANDOMNESS !!
+    Similar with the ideal magnetometer function
+    args[0] = INT or FLOAT, the controller gain
+    args[1] = STR only, the name of the sensor object that the controller takes the input from
+
+    control moment is zero unless the length of recorders is more than 1
+    - 1) take the latest recorder->MTM sensor magnetic field (BODY frame) values
+    - 2) take the latest recorder->datetime values
+    - 3) take the current state spacecraftr->MTM sensor magnetic field (BODY frame) values
+    - 4) take the current state spacecratft->datetime values
+    - 5) calculate difference in magnetic field (BODY frame) between current and latest
+    - 6) calcualte difference in datetime in seconds between current and latest
+    - 7) take the ratio of 5/6 (this is the derivative of magnetic field)
+    - 8) multiply the ratio with negative of controller gain
+    '''
+    magfield_body_vector0 = Vector(0,0,0)
+    time0 = spacecraft.system.datetime0
+
+    control_moment = Vector(0,0,0)
+
+    if len(spacecraft.recorder[args[1]]) > 2:
+        magfield_body_vector0 = spacecraft.recorder[args[1]][-1]
+        time0 = spacecraft.recorder['Datetime'][-1]
+
+    if len(spacecraft.recorder[args[1]]) > 1:
+        magfield_body_vector = spacecraft[args[1]]
+        time = spacecraft.system.datenow()
+        
+        delta_magfield_body_vector = magfield_body_vector - magfield_body_vector0
+        delta_time = (time - time0).total_seconds()
+
+        control_moment = -args[0] * (delta_magfield_body_vector/delta_time)
+
+    return control_moment
+
+def ideal_magnetorquer_function(spacecraft: Spacecraft, args):
     
     control_moment = spacecraft['ideal_BDOT']
     magfield_body_vector = spacecraft['ideal_MTM']
@@ -1609,7 +1679,48 @@ def magnetorquer_function(spacecraft: Spacecraft, args):
 
     return control_torque
 
-def sunsensor_function(spacecraft: Spacecraft, args):
+def REAL_magnetorquer_FUNC(spacecraft: Spacecraft, args):
+    '''
+    !! TO ADD NODES AND RANDOMNESS !!
+    Similar with the ideal magnetorquer function
+    args[0] - STR only, the name of the controller object that the actuator receives commands from
+
+    - 1) takes the controller command output from args[0]
+    - 2) takes the TRUE magnetic field (BODY frame) from ideal MTM
+    - 3) calculate the magnetic torque generated by cross multiply 1 and 3
+    '''
+
+    control_moment = spacecraft[args[0]]
+    magfield_body_vector = spacecraft['ideal_MTM']
+    control_torque = control_moment.cross(magfield_body_vector)
+
+    return control_torque
+
+def REAL_gyroscope_FUNC(spacecraft, args):
+    '''
+    !! TO ADD NOISE and RANDOMNESS !!
+    args[0] - INT only and non-negative, the number of simulate time steps of sensor output delay
+    
+    - 1) takes the delayed recorder->state->bodyrate values
+    '''
+    gyro_bodyrate = Vector(0,0,0)
+    if len(spacecraft.recorder['State']) > args[0] and args[0] > -1:
+        gyro_bodyrate = spacecraft.recorder['State'][-args[0]-1].bodyrate
+    return gyro_bodyrate
+
+def REAL_gps_FUNC(spacecraft, args):
+    '''
+    !! TO ADD NOISE and RANDOMNESS !!
+    args[0] - INT only and non-negative, the number of simulate time steps of sensor output delay
+    
+    - 1) takes the delayed recorder->location values
+    '''
+    gps_position = Vector(0,0,0)
+    if len(spacecraft.recorder['Location']) > args[0] and args[0] > -1:
+        gps_position = spacecraft.recorder['Location'][-args[0]-1]
+    return gps_position
+
+def ideal_sunsensor_function(spacecraft: Spacecraft, args):
     
     quaternion = spacecraft.state.quaternion
     sun_body_vector = quaternion.toMatrix() * spacecraft['Sunvector']
@@ -1628,7 +1739,7 @@ def LVLHqerror_function(spacecraft: Spacecraft, args):
     
     return LVLH2Body
 
-def nadircontroller_function(spacecraft: Spacecraft, args):
+def ideal_nadircontroller_function(spacecraft: Spacecraft, args):
     control_torques = Vector(0, 0, 0)
     if len(spacecraft.recorder['State']) > 1:
         qError = LVLHqerror_function(spacecraft, args)
@@ -1658,7 +1769,7 @@ def nadircontroller_function(spacecraft: Spacecraft, args):
         control_torques = -args[3] * MRP - diag * wError + I * (DwRef - w.cross(wRef)) + wRef.cross(I * w)
     return control_torques
 
-def elevationsensor_function(spacecraft: Spacecraft, args):
+def ideal_elevationsensor_function(spacecraft: Spacecraft, args):
 
     station = args[0]
     system = spacecraft.system
@@ -1688,25 +1799,25 @@ def elevationsensor_function(spacecraft: Spacecraft, args):
     angle = math.acos( (target.normalize() * target2pos.normalize()).sum() ) * R2D
     angle = 90 - angle
 
-    return Vector(angle, angle, angle)
+    return angle
 
 ideal_magnetometer = Sensor('ideal_MTM')
-ideal_magnetometer.setMethod(magnetometer_function)
+ideal_magnetometer.setMethod(IDEAL_magnetometer_function)
 
 ideal_bdotcontroller = Controller('ideal_BDOT')
-ideal_bdotcontroller.setMethod(bdotcontroller_function, [5e4])
+ideal_bdotcontroller.setMethod(IDEAL_bdotcontroller_function, [5e5])
 
 ideal_magnetorquer = Actuator('ideal_MTQ')
-ideal_magnetorquer.setMethod(magnetorquer_function)
+ideal_magnetorquer.setMethod(ideal_magnetorquer_function)
 
 ideal_sunsensor = Sensor('ideal_SS')
-ideal_sunsensor.setMethod(sunsensor_function)
+ideal_sunsensor.setMethod(ideal_sunsensor_function)
 
 ideal_nadircontroller = Controller('ideal_NADIR')
-ideal_nadircontroller.setMethod(nadircontroller_function, [3e-4, 3e-4, 3e-4, 2e-4])
+ideal_nadircontroller.setMethod(ideal_nadircontroller_function, [3e-4, 3e-4, 3e-4, 2e-4])
 
 pedro_station = GroundStation('PEDRO', 14.647219, 121.07195333, 5)
 davao_station = GroundStation('DVO_GRS', 7.125278, 125.645833, 5)
 
 ideal_elevationsensor = Sensor('ideal_ELEV')
-ideal_elevationsensor.setMethod(elevationsensor_function, [pedro_station])
+ideal_elevationsensor.setMethod(ideal_elevationsensor_function, [pedro_station])

@@ -5,13 +5,13 @@ to installs the project dependencies.
 $ poetry install
 
 to run all tests: (without print statements)
-$ poetry run pytest -v 
+$ poetry run pytest tests/test_leoss.py -v 
 
 to run all tests: (with print statements)
-$ poetry run pytest -vs
+$ poetry run pytest tests/test_leoss.py -vs
 
 to run tests: (only the specified test function)
-$ poetry run pytest -v -k 'test_XX'
+$ poetry run pytest tests/test_leoss.py -v -k 'test_XX'
 
 to check files before building
 $ poetry check
