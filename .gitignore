@@ -11,3 +11,5 @@ data_*.txt
 sked_testcase.txt
 *.csv
 *.pkl
+test_random.py
+NE1_50M_SR_W.tif

@@ -657,19 +657,21 @@ class Spacecraft():
         done = False
         if command == 'Components' and arg == 'ON':
             for sensor in self.sensors.values():
-                sensor.power = True; done = True
+                sensor.power = True
             for controller in self.controllers.values():
-                controller.power = True; done = True
+                controller.power = True
             for actor in self.actuators.values():
-                actor.power = True; done = True
+                actor.power = True
+            done = True
 
         if command == 'Components' and arg == 'OFF':
             for sensor in self.sensors.values():
-                sensor.power = False; done = True
+                sensor.power = False
             for controller in self.controllers.values():
-                controller.power = False; done = True
+                controller.power = False
             for actor in self.actuators.values():
-                actor.power = False; done = True
+                actor.power = False
+            done = True
 
         if command in self.sensors.keys() and (arg == 'ON' or arg == 'OFF'):
             if arg == 'ON':
@@ -691,6 +693,7 @@ class Spacecraft():
 
         if not done:
             print('\t No matching CMD found for '+str(self.nextCMDline))
+            print(command)
 
     def updateComponents(self):
         self.updateSensors()

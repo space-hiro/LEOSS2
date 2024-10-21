@@ -524,8 +524,13 @@ def sliderAttitudeTrack(recorder: Recorder, frameRef: str = 'Inertial'):
         yaxis = Vector(0,1,0)
         zaxis = Vector(0,0,1)
         maxis = Matrices[frame] * spacecraft.inertia*Bodyrates[frame]
+        
 
         Rotation = Matrices[frame]
+
+        if maxis.magnitude() == 0:
+            maxis = Vector(1,0,0)
+
         maxisLine = maxis.normalize() * ratio * 2
 
         if frameRef == 'Momentum':
@@ -1148,10 +1153,22 @@ def passTrack(recorder: Recorder, groundstation: GroundStation, dateTime = -1):
             endIndex   = Times.index(endpass)
             tcaIndex   = Times.index(tcapass)
 
-            startSpot.set_data([Longitudes[startIndex], Latitudes[startIndex]])
-            tcaSpot.set_data([Longitudes[tcaIndex], Latitudes[tcaIndex]])
-            endSpot.set_data([Longitudes[endIndex], Latitudes[endIndex]])
-            sun.set_data([SunLocation[tcaIndex].y, SunLocation[tcaIndex].x])
+            # startSpot.set_data([Longitudes[startIndex], Latitudes[startIndex]])
+            # tcaSpot.set_data([Longitudes[tcaIndex], Latitudes[tcaIndex]])
+            # endSpot.set_data([Longitudes[endIndex], Latitudes[endIndex]])
+            # sun.set_data([SunLocation[tcaIndex].y, SunLocation[tcaIndex].x])
+
+            startSpot.set_xdata([Longitudes[startIndex]])
+            startSpot.set_ydata([Latitudes[startIndex]])
+
+            tcaSpot.set_xdata([Longitudes[tcaIndex]])
+            tcaSpot.set_ydata([Latitudes[tcaIndex]])
+
+            endSpot.set_xdata([Longitudes[endIndex]])
+            endSpot.set_ydata([Latitudes[endIndex]])
+
+            sun.set_xdata([SunLocation[tcaIndex].y])
+            sun.set_ydata([SunLocation[tcaIndex].x])
 
             lat1 = str('%.2F'% Latitudes[startIndex]+"°")
             lon1 = str('%.2F'% Longitudes[startIndex]+"°")
@@ -1195,10 +1212,22 @@ def passTrack(recorder: Recorder, groundstation: GroundStation, dateTime = -1):
             endIndex   = Times.index(endpass)
             tcaIndex   = Times.index(tcapass)
 
-            startSpot.set_data([Longitudes[startIndex], Latitudes[startIndex]])
-            tcaSpot.set_data([Longitudes[tcaIndex], Latitudes[tcaIndex]])
-            endSpot.set_data([Longitudes[endIndex], Latitudes[endIndex]])
-            sun.set_data([SunLocation[tcaIndex].y, SunLocation[tcaIndex].x])
+            # startSpot.set_data([Longitudes[startIndex], Latitudes[startIndex]])
+            # tcaSpot.set_data([Longitudes[tcaIndex], Latitudes[tcaIndex]])
+            # endSpot.set_data([Longitudes[endIndex], Latitudes[endIndex]])
+            # sun.set_data([SunLocation[tcaIndex].y, SunLocation[tcaIndex].x])
+            
+            startSpot.set_xdata([Longitudes[startIndex]])
+            startSpot.set_ydata([Latitudes[startIndex]])
+
+            tcaSpot.set_xdata([Longitudes[tcaIndex]])
+            tcaSpot.set_ydata([Latitudes[tcaIndex]])
+
+            endSpot.set_xdata([Longitudes[endIndex]])
+            endSpot.set_ydata([Latitudes[endIndex]])
+
+            sun.set_xdata([SunLocation[tcaIndex].y])
+            sun.set_ydata([SunLocation[tcaIndex].x])
 
             lat1 = str('%.2F'% Latitudes[startIndex]+"°")
             lon1 = str('%.2F'% Longitudes[startIndex]+"°")
@@ -1234,7 +1263,7 @@ def passTrack(recorder: Recorder, groundstation: GroundStation, dateTime = -1):
 
     return Passes
 
-def animatedGroundTrack(recorder: Recorder, sample: int = 0, saveas: str = 'mp4', dpi: int = 300, filename=''):
+def animatedGroundTrack(recorder: Recorder, sample: int = 0, saveas: str = 'mp4', dpi: int = 300, filename='animatedGroundTrack'):
 
     # get datadict from recorder as dataframe
     df = pd.DataFrame.from_dict(recorder.dataDict)
