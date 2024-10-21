@@ -376,7 +376,7 @@ def animatedAttitudeTrack(recorder: Recorder, sample: int = 0, saveas: str = "mp
     )
 
     if saveas == "mp4":
-        anim.save("Attitudetrack.mp4", fps=30, dpi=dpi)
+        anim.save("Attitudetrack.mp4", writer='ffmpeg', fps=30, dpi=dpi)
     if saveas == "gif":
         anim.save("Attitudetrack.gif", writer='pillow', fps=30)
 
@@ -1380,7 +1380,7 @@ def animatedGroundTrack(recorder: Recorder, sample: int = 0, saveas: str = 'mp4'
     )
 
     if saveas == "mp4":
-        anim.save(filename+".mp4", fps=30, dpi=dpi)
+        anim.save(filename+".mp4", writer='ffmpeg', fps=30, dpi=dpi)
     if saveas == "gif":
         anim.save(filename+".gif", writer='pillow', fps=30)
 
@@ -1823,7 +1823,7 @@ def animatedSensorTrack(recorder: Recorder, sensor: str, sample: int = 0, saveas
     )
 
     if saveas == "mp4":
-        anim.save(filename+".mp4", fps=30, dpi=dpi)
+        anim.save(filename+".mp4", writer='ffmpeg', fps=30, dpi=dpi)
     if saveas == "gif":
         anim.save(filename+".gif", writer='pillow', fps=30)
 
